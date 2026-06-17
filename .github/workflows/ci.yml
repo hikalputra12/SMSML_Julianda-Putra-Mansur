@@ -58,23 +58,23 @@ jobs:
         fi
 
         # Menulis skrip ke file terpisah agar aman dari konflik parsing karakter YAML
-        cat << 'EOF' > get_model_path.py
-import mlflow
-import glob
-try:
-    client = mlflow.tracking.MlflowClient()
-    exp = client.get_experiment_by_name('Loan_Approval_CI')
-    exp_id = exp.experiment_id if exp is not None else '0'
-    runs = client.search_runs(experiment_ids=[exp_id])
-    if len(runs) > 0:
-        print(runs[0].info.artifact_uri + '/ci_model')
-    else:
-        paths = glob.glob('mlruns/*/*/artifacts/ci_model')
-        print(paths[0] if len(paths) > 0 else 'MLProject/')
-except Exception:
-    paths = glob.glob('mlruns/*/*/artifacts/ci_model')
-    print(paths[0] if len(paths) > 0 else 'MLProject/')
-EOF
+        cat << 'EOF' | sed 's/^[[:space:]]\{8\}//' > get_model_path.py
+        import mlflow
+        import glob
+        try:
+            client = mlflow.tracking.MlflowClient()
+            exp = client.get_experiment_by_name('Loan_Approval_CI')
+            exp_id = exp.experiment_id if exp is not None else '0'
+            runs = client.search_runs(experiment_ids=[exp_id])
+            if len(runs) > 0:
+                print(runs[0].info.artifact_uri + '/ci_model')
+            else:
+                paths = glob.glob('mlruns/*/*/artifacts/ci_model')
+                print(paths[0] if len(paths) > 0 else 'MLProject/')
+        except Exception:
+            paths = glob.glob('mlruns/*/*/artifacts/ci_model')
+            print(paths[0] if len(paths) > 0 else 'MLProject/')
+        EOF
 
         # Eksekusi skrip dinamis
         MODEL_PATH=$(python get_model_path.py)
