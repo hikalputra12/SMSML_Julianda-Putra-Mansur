@@ -14,6 +14,7 @@ jobs:
     env:
       HAS_DOCKER_SECRETS: ${{ secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
       MLFLOW_TRACKING_URI: file://${{ github.workspace }}/mlruns
+      MLFLOW_ALLOW_FILE_STORE: "true" # <-- BYPASS WAJIB AGAR TIDAK ERROR FILESTORE EXCEPTION
 
     steps:
     # 1. Checkout repository code
