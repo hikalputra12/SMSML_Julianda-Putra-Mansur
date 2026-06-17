@@ -58,7 +58,7 @@ jobs:
         fi
 
         # Menulis skrip ke file terpisah agar aman dari konflik parsing karakter YAML
-        cat << 'EOF' | sed 's/^[[:space:]]\{8\}//' > get_model_path.py
+        cat << 'EOF' > get_model_path.py
         import mlflow
         import glob
         try:
