@@ -48,39 +48,41 @@ jobs:
           feature_importance.png
         if-no-files-found: ignore
 
-# 6. Build Docker Image (Advance Level: Membangun image menggunakan mlflow build-docker)
+    # 6. Build Docker Image (Advance Level: Membangun image menggunakan mlflow build-docker)
     - name: Build Docker Image
       run: |
-        # 1. Cari path model asli hasil training secara dinamis dari mlruns
-        MODEL_PATH=$(python -c "
-import mlflow
-try:
-    client = mlflow.tracking.MlflowClient()
-    exp = client.get_experiment_by_name('Loan_Approval_CI')
-    exp_id = exp.experiment_id if exp is not None else '0'
-    runs = client.search_runs(experiment_ids=[exp_id])
-    if len(runs) > 0:
-        print(runs[0].info.artifact_uri + '/ci_model')
-    else:
+        # Menulis skrip ke file terpisah agar aman dari konflik parsing karakter YAML
+        cat << 'EOF' > get_model_path.py
+        import mlflow
         import glob
-        paths = glob.glob('mlruns/*/*/artifacts/ci_model')
-        print(paths[0] if len(paths) > 0 else 'MLProject/')
-except Exception:
-    import glob
-    paths = glob.glob('mlruns/*/*/artifacts/ci_model')
-    print(paths[0] if len(paths) > 0 else 'MLProject/')
-        ")
+        try:
+            client = mlflow.tracking.MlflowClient()
+            exp = client.get_experiment_by_name('Loan_Approval_CI')
+            exp_id = exp.experiment_id if exp is not None else '0'
+            runs = client.search_runs(experiment_ids=[exp_id])
+            if len(runs) > 0:
+                print(runs[0].info.artifact_uri + '/ci_model')
+            else:
+                paths = glob.glob('mlruns/*/*/artifacts/ci_model')
+                print(paths[0] if len(paths) > 0 else 'MLProject/')
+        except Exception:
+            paths = glob.glob('mlruns/*/*/artifacts/ci_model')
+            print(paths[0] if len(paths) > 0 else 'MLProject/')
+        EOF
+
+        # Eksekusi skrip dinamis
+        MODEL_PATH=$(python get_model_path.py)
         echo "LOGGED_MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
         echo "[INFO] Model URI yang ditemukan: $MODEL_PATH"
 
-        # 2. Tentukan nama image berdasarkan ketersediaan secrets
+        # Tentukan nama image berdasarkan ketersediaan secrets
         IMAGE_NAME="haikal1012/loan-model:latest"
         if [ "${{ env.HAS_DOCKER_SECRETS }}" = "true" ]; then
           IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/loan-model:latest"
         fi
         echo "TARGET_IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
-        # 3. Eksekusi perintah asli mlflow models untuk menjamin image benar-benar ter-build di Docker lokal
+        # Eksekusi perintah asli mlflow models build-docker
         echo "[INFO] Memulai proses kompilasi Docker Image via MLflow Models..."
         mlflow models build-docker -m "$MODEL_PATH" -n "$IMAGE_NAME" --env-manager local
 
