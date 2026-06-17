@@ -46,10 +46,7 @@ def main():
     else:
         # Jika di bawah mlflow run, gunakan active run yang disediakan oleh environment
         print("[INFO] Dijalankan di bawah MLflow Run secara langsung. Menggunakan environment tracking bawaan.")
-        class DummyContext:
-            def __enter__(self): return self
-            def __exit__(self, exc_type, exc_val, exc_tb): pass
-        run_context = DummyContext()
+        run_context = mlflow.start_run()
         
     with run_context:
         # Logging parameter secara manual
