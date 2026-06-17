@@ -13,8 +13,6 @@ jobs:
 
     env:
       HAS_DOCKER_SECRETS: ${{ secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
-      MLFLOW_TRACKING_URI: file://${{ github.workspace }}/mlruns
-      MLFLOW_ALLOW_FILE_STORE: "true" # <-- BYPASS WAJIB AGAR TIDAK ERROR FILESTORE EXCEPTION
 
     steps:
     # 1. Checkout repository code
@@ -50,54 +48,47 @@ jobs:
           feature_importance.png
         if-no-files-found: ignore
 
-    # 6. Build Docker Image (Advance Level: Membangun image menggunakan mlflow build-docker)
+    # 6. Build Docker Image (Advance Level: Membangun image menggunakan mlflow build-docker alternatif)
     - name: Build Docker Image
       run: |
-        # MLFLOW_TRACKING_URI diatur secara terpusat ke file://${{ github.workspace }}/mlruns
-        # Semua proses pelatihan dan Docker build menggunakan tracking URI yang sama secara langsung.
-
-        # Menulis skrip ke file terpisah agar aman dari konflik parsing karakter YAML
+        # Menulis skrip pencarian berbasis keberadaan berkas 'MLmodel' di dalam direktori mlruns
         cat << 'EOF' > get_model_path.py
-        import mlflow
         import glob
-        try:
-            client = mlflow.tracking.MlflowClient()
-            exp = client.get_experiment_by_name('Loan_Approval_CI')
-            exp_id = exp.experiment_id if exp is not None else '0'
-            runs = client.search_runs(experiment_ids=[exp_id])
-            model_uri = None
-            for run in runs:
-                run_id = run.info.run_id
-                try:
-                    artifacts = client.list_artifacts(run_id)
-                    if any(a.path == 'ci_model' for a in artifacts):
-                        model_uri = f"runs:/{run_id}/ci_model"
-                        break
-                except Exception:
-                    pass
-            if model_uri:
-                print(model_uri)
-            else:
-                paths = glob.glob('mlruns/*/*/artifacts/ci_model')
-                print(paths[0] if len(paths) > 0 else 'MLProject/')
-        except Exception:
-            paths = glob.glob('mlruns/*/*/artifacts/ci_model')
-            print(paths[0] if len(paths) > 0 else 'MLProject/')
+        import os
+
+        def get_path():
+            # Menyisir seluruh subfolder di dalam mlruns untuk mencari file manifes MLmodel
+            mlmodel_files = glob.glob('mlruns/**/MLmodel', recursive=True)
+            
+            if mlmodel_files:
+                # Ambil file MLmodel pertama, lalu dapatkan path foldernya
+                model_folder = os.path.dirname(mlmodel_files[0])
+                return model_folder
+            
+            return 'MLProject/'
+
+        print(get_path())
         EOF
 
-        # Eksekusi skrip dinamis
+        # Eksekusi skrip dinamis untuk mendapatkan lokasi model yang valid
         MODEL_PATH=$(python get_model_path.py)
         echo "LOGGED_MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
         echo "[INFO] Model URI yang ditemukan: $MODEL_PATH"
 
-        # Tentukan nama image berdasarkan ketersediaan secrets
+        # Validasi krusial: Jika jatuh ke fallback, hentikan langkah dengan pesan eror yang jelas
+        if [ "$MODEL_PATH" = "MLProject/" ]; then
+          echo "[ERROR] File 'MLmodel' tidak ditemukan di direktori mlruns. Pastikan skrip modelling.py Anda melakukan mlflow.sklearn.log_model() dengan benar."
+          exit 1
+        fi
+
+        # Menentukan nama image. Menggunakan fallback ke haikal1012 jika secrets kosong
         IMAGE_NAME="haikal1012/loan-model:latest"
         if [ "${{ env.HAS_DOCKER_SECRETS }}" = "true" ]; then
           IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/loan-model:latest"
         fi
         echo "TARGET_IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
-        # Eksekusi perintah asli mlflow models build-docker
+        # Eksekusi perintah resmi mlflow models build-docker dengan melompati pembuatan environment conda baru
         echo "[INFO] Memulai proses kompilasi Docker Image via MLflow Models..."
         mlflow models build-docker -m "$MODEL_PATH" -n "$IMAGE_NAME" --env-manager local
 
@@ -112,6 +103,6 @@ jobs:
     - name: Push Docker Image to Docker Hub
       if: env.HAS_DOCKER_SECRETS == 'true'
       run: |
-        # Menggunakan env variable yang sudah disimpan di step 6 secara konsisten
+        # Menggunakan environment variable TARGET_IMAGE_NAME yang didefinisikan di step 6
         echo "Pushing Docker Image: ${{ env.TARGET_IMAGE_NAME }}"
         docker push "${{ env.TARGET_IMAGE_NAME }}"
