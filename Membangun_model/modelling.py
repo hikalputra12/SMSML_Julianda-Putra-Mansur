@@ -58,8 +58,45 @@ def main():
         # Logging model sebagai artefak resmi
         mlflow.sklearn.log_model(model, "baseline_model")
         
+        # Membuat dan mengunggah Artefak Tambahan 1: Confusion Matrix Plot
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        from sklearn.metrics import confusion_matrix
+        
+        cm = confusion_matrix(y_test, y_pred)
+        plt.figure(figsize=(6, 5))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Rejected', 'Approved'], yticklabels=['Rejected', 'Approved'])
+        plt.title('Confusion Matrix - Baseline')
+        plt.ylabel('Actual Label')
+        plt.xlabel('Predicted Label')
+        plt.tight_layout()
+        cm_path = "confusion_matrix.png"
+        plt.savefig(cm_path)
+        plt.close()
+        mlflow.log_artifact(cm_path)
+        if os.path.exists(cm_path):
+            os.remove(cm_path)
+            
+        # Membuat dan mengunggah Artefak Tambahan 2: Feature Importance Plot
+        import numpy as np
+        importances = model.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        features = X.columns
+        
+        plt.figure(figsize=(10, 6))
+        plt.title("Feature Importances - Baseline")
+        plt.bar(range(X.shape[1]), importances[indices], align="center")
+        plt.xticks(range(X.shape[1]), [features[i] for i in indices], rotation=45, ha='right')
+        plt.tight_layout()
+        fi_path = "feature_importance.png"
+        plt.savefig(fi_path)
+        plt.close()
+        mlflow.log_artifact(fi_path)
+        if os.path.exists(fi_path):
+            os.remove(fi_path)
+        
         print("="*50)
-        print("[+] Baseline Model Berhasil Dilatih & Di-log ke DagsHub!")
+        print("[+] Baseline Model & 2 Artefak Tambahan Berhasil Dilatih & Di-log!")
         print(f"Accuracy : {acc:.4f} | F1-Score: {f1:.4f}")
         print("="*50)
 
