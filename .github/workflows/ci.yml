@@ -51,24 +51,30 @@ jobs:
     # 6. Build Docker Image (Advance Level: Membangun image menggunakan mlflow build-docker)
     - name: Build Docker Image
       run: |
+        # Gabungkan mlruns dari subfolder MLProject/ ke root repositori agar artifacts dapat ditemukan
+        if [ -d "MLProject/mlruns" ]; then
+          echo "[INFO] Menggabungkan mlruns dari subfolder ke root..."
+          cp -r MLProject/mlruns/* mlruns/
+        fi
+
         # Menulis skrip ke file terpisah agar aman dari konflik parsing karakter YAML
         cat << 'EOF' > get_model_path.py
-        import mlflow
-        import glob
-        try:
-            client = mlflow.tracking.MlflowClient()
-            exp = client.get_experiment_by_name('Loan_Approval_CI')
-            exp_id = exp.experiment_id if exp is not None else '0'
-            runs = client.search_runs(experiment_ids=[exp_id])
-            if len(runs) > 0:
-                print(runs[0].info.artifact_uri + '/ci_model')
-            else:
-                paths = glob.glob('mlruns/*/*/artifacts/ci_model')
-                print(paths[0] if len(paths) > 0 else 'MLProject/')
-        except Exception:
-            paths = glob.glob('mlruns/*/*/artifacts/ci_model')
-            print(paths[0] if len(paths) > 0 else 'MLProject/')
-        EOF
+import mlflow
+import glob
+try:
+    client = mlflow.tracking.MlflowClient()
+    exp = client.get_experiment_by_name('Loan_Approval_CI')
+    exp_id = exp.experiment_id if exp is not None else '0'
+    runs = client.search_runs(experiment_ids=[exp_id])
+    if len(runs) > 0:
+        print(runs[0].info.artifact_uri + '/ci_model')
+    else:
+        paths = glob.glob('mlruns/*/*/artifacts/ci_model')
+        print(paths[0] if len(paths) > 0 else 'MLProject/')
+except Exception:
+    paths = glob.glob('mlruns/*/*/artifacts/ci_model')
+    print(paths[0] if len(paths) > 0 else 'MLProject/')
+EOF
 
         # Eksekusi skrip dinamis
         MODEL_PATH=$(python get_model_path.py)
