@@ -13,6 +13,7 @@ jobs:
 
     env:
       HAS_DOCKER_SECRETS: ${{ secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
+      MLFLOW_TRACKING_URI: file://${{ github.workspace }}/mlruns
 
     steps:
     # 1. Checkout repository code
@@ -51,11 +52,8 @@ jobs:
     # 6. Build Docker Image (Advance Level: Membangun image menggunakan mlflow build-docker)
     - name: Build Docker Image
       run: |
-        # Gabungkan mlruns dari subfolder MLProject/ ke root repositori agar artifacts dapat ditemukan
-        if [ -d "MLProject/mlruns" ]; then
-          echo "[INFO] Menggabungkan mlruns dari subfolder ke root..."
-          cp -r MLProject/mlruns/* mlruns/
-        fi
+        # MLFLOW_TRACKING_URI diatur secara terpusat ke file://${{ github.workspace }}/mlruns
+        # Semua proses pelatihan dan Docker build menggunakan tracking URI yang sama secara langsung.
 
         # Menulis skrip ke file terpisah agar aman dari konflik parsing karakter YAML
         cat << 'EOF' > get_model_path.py
