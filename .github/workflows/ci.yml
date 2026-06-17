@@ -48,57 +48,41 @@ jobs:
           feature_importance.png
         if-no-files-found: ignore
 
-    # 6. Build Docker Image (Advance Level: Membangun image menggunakan mlflow build-docker)
+# 6. Build Docker Image (Advance Level: Membangun image menggunakan mlflow build-docker)
     - name: Build Docker Image
       run: |
-        # Membuat wrapper function agar perintah 'mlflow build-docker' bawaan rubrik/soal berjalan sukses
-        # dengan memetakan secara dinamis ke 'mlflow models build-docker' dan model-uri asli hasil training
-        mlflow() {
-          if [ "$1" = "build-docker" ]; then
-            shift
-            echo "[INFO] Intercepted 'mlflow build-docker'. Menyelaraskan dengan mlflow models build-docker..."
-            
-            # Cari path model asli hasil training secara dinamis dari mlruns
-            MODEL_PATH=$(python -c "
+        # 1. Cari path model asli hasil training secara dinamis dari mlruns
+        MODEL_PATH=$(python -c "
 import mlflow
-client = mlflow.tracking.MlflowClient()
-exp = client.get_experiment_by_name('Loan_Approval_CI')
-exp_id = exp.experiment_id if exp is not None else '0'
-runs = client.search_runs(experiment_ids=[exp_id])
-if len(runs) > 0:
-    print(runs[0].info.artifact_uri + '/ci_model')
-else:
+try:
+    client = mlflow.tracking.MlflowClient()
+    exp = client.get_experiment_by_name('Loan_Approval_CI')
+    exp_id = exp.experiment_id if exp is not None else '0'
+    runs = client.search_runs(experiment_ids=[exp_id])
+    if len(runs) > 0:
+        print(runs[0].info.artifact_uri + '/ci_model')
+    else:
+        import glob
+        paths = glob.glob('mlruns/*/*/artifacts/ci_model')
+        print(paths[0] if len(paths) > 0 else 'MLProject/')
+except Exception:
     import glob
     paths = glob.glob('mlruns/*/*/artifacts/ci_model')
     print(paths[0] if len(paths) > 0 else 'MLProject/')
-            ")
-            echo "[INFO] Menggunakan Model URI: $MODEL_PATH"
-            
-            # Bentuk ulang argumen dengan mengganti '-m MLProject/' dengan '-m $MODEL_PATH'
-            ARGS=()
-            while [ "$#" -gt 0 ]; do
-              if [ "$1" = "-m" ] || [ "$1" = "--model-uri" ]; then
-                ARGS+=("-m" "$MODEL_PATH")
-                shift 2
-              else
-                ARGS+=("$1")
-                shift
-              fi
-            done
-            command mlflow models build-docker "${ARGS[@]}" --env-manager local
-          else
-            command mlflow "$@"
-          fi
-        }
-        
-        # Menentukan nama image. Gunakan DOCKER_USERNAME jika ada, jika tidak gunakan fallback name
+        ")
+        echo "LOGGED_MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
+        echo "[INFO] Model URI yang ditemukan: $MODEL_PATH"
+
+        # 2. Tentukan nama image berdasarkan ketersediaan secrets
         IMAGE_NAME="haikal1012/loan-model:latest"
         if [ "${{ env.HAS_DOCKER_SECRETS }}" = "true" ]; then
           IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/loan-model:latest"
         fi
-        
-        echo "Building Docker Image: $IMAGE_NAME"
-        mlflow build-docker -m MLProject/ -n "$IMAGE_NAME"
+        echo "TARGET_IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+        # 3. Eksekusi perintah asli mlflow models untuk menjamin image benar-benar ter-build di Docker lokal
+        echo "[INFO] Memulai proses kompilasi Docker Image via MLflow Models..."
+        mlflow models build-docker -m "$MODEL_PATH" -n "$IMAGE_NAME" --env-manager local
 
     # 7. Push Docker Image to Docker Hub (Advance Level: Hanya dijalankan jika secrets tersedia)
     - name: Log in to Docker Hub
@@ -111,6 +95,6 @@ else:
     - name: Push Docker Image to Docker Hub
       if: env.HAS_DOCKER_SECRETS == 'true'
       run: |
-        IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/loan-model:latest"
-        echo "Pushing Docker Image: $IMAGE_NAME"
-        docker push "$IMAGE_NAME"
+        # Menggunakan env variable yang sudah disimpan di step 6 secara konsisten
+        echo "Pushing Docker Image: ${{ env.TARGET_IMAGE_NAME }}"
+        docker push "${{ env.TARGET_IMAGE_NAME }}"
