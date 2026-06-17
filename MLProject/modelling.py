@@ -14,9 +14,9 @@ def main():
     parser.add_argument("--max-depth", type=int, default=10, help="Kedalaman maksimum tree")
     args = parser.parse_args()
 
-    # Mengambil dataset bersih secara dinamis dari folder MLProject
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base_dir, "namadataset_preprocessing", "dataset_clean.csv")
+    # Mengambil dataset bersih secara dinamis dari path yang sudah ada di repositori
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_path = os.path.join(base_dir, "Eksperimen_SML_Julianda-Putra-Mansur", "preprocessing", "loan_approval_preprocessing", "dataset_clean.csv")
     
     if not os.path.exists(data_path):
         raise FileNotFoundError(f"Data bersih tidak ditemukan di {data_path}!")
