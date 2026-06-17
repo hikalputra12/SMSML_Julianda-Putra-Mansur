@@ -99,7 +99,7 @@ def update_system_metrics():
             
             # Update error rate jika total_requests > 0
             if total_requests > 0:
-                ml_error_rate.set(error_requests / total_requests)
+                ml_error_rate.set(error_requests / max(total_requests, 1))
             else:
                 ml_error_rate.set(0.0)
                 
