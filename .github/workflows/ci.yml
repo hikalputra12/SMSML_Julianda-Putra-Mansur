@@ -52,7 +52,7 @@ jobs:
     - name: Build Docker Image
       run: |
         # Menentukan nama image. Gunakan DOCKER_USERNAME jika ada, jika tidak gunakan fallback name
-        IMAGE_NAME="hikalputra12/loan-model:latest"
+        IMAGE_NAME="haikal1012/loan-model:latest"
         if [ "${{ env.HAS_DOCKER_SECRETS }}" = "true" ]; then
           IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/loan-model:latest"
         fi
