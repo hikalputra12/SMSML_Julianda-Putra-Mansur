@@ -2,11 +2,15 @@ import os
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+import dagshub
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 def main():
+    # Inisialisasi DagsHub tracking remote
+    dagshub.init(repo_owner='hikalputra12', repo_name='Eksperimen_SML_Julianda-Putra-Mansur', mlflow=True)
+
     # Mengambil dataset bersih hasil otomatisasi Kriteria 1 secara dinamis
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_path = os.path.join(BASE_DIR, "Eksperimen_SML_Julianda-Putra-Mansur", "preprocessing", "loan_approval_preprocessing", "dataset_clean.csv")
