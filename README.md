@@ -34,7 +34,7 @@ Berikut adalah tata letak folder dan file utama dalam repositori ini beserta pen
 └── Monitoring dan Logging/                    # Infrastruktur Monitoring & Alerting
     ├── 2.prometheus.yml                       # Konfigurasi scraping target untuk server Prometheus
     ├── 3.prometheus_exporter.py               # Flask Proxy Exporter (menjembatani request, menghitung metrik & MLflow serving)
-    ├── 7.inference.py                         # Simulator client pengirim request inferensi acak secara berkala
+    ├── 7.Inference.py                         # Simulator client pengirim request inferensi acak secara berkala
     ├── README_Monitoring.md                   # Panduan lengkap langkah demi langkah setup monitoring & alerting
     │
     # --- Folder Bukti Pengumpulan (Screenshots) ---
@@ -84,7 +84,7 @@ docker run -d --name grafana -p 3000:3000 grafana/grafana
 ### Langkah 5: Jalankan Simulasi Request Client
 Jalankan generator beban inferensi secara berkelanjutan agar metrik terisi secara dinamis di Prometheus & Grafana:
 ```powershell
-python "Monitoring dan Logging/7.inference.py"
+python "Monitoring dan Logging/7.Inference.py"
 ```
 
 ---

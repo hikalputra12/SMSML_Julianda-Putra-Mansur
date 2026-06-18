@@ -81,7 +81,7 @@ Akses dashboard Grafana di [http://localhost:3000](http://localhost:3000) (Usern
 Buka **terminal/tab baru**, lalu jalankan script load generator untuk mulai mengirimkan request prediksi acak dari dataset bersih secara berkelanjutan. Ini akan menyuplai data ke Prometheus & Grafana secara real-time:
 
 ```powershell
-python "Monitoring dan Logging/7.inference.py"
+python "Monitoring dan Logging/7.Inference.py"
 ```
 
 ---
@@ -143,7 +143,7 @@ Kriteria Advance mewajibkan Anda untuk membuat **minimal 3 alerting rules** meng
   ```promql
   ml_error_rate
   ```
-- **Threshold (C):** Atur kondisi alert bila error rate di atas **0.05** (artinya tingkat kegagalan > 5%). Anda bisa memicunya dengan sengaja karena script `7.inference.py` memiliki peluang 2% mengirim payload kosong yang menghasilkan error.
+- **Threshold (C):** Atur kondisi alert bila error rate di atas **0.05** (artinya tingkat kegagalan > 5%). Anda bisa memicunya dengan sengaja karena script `7.Inference.py` memiliki peluang 2% mengirim payload kosong yang menghasilkan error.
 
 ### Alert 3: High CPU Usage Alert (Deteksi Beban Server Tinggi)
 - **Rule Name:** `High CPU Usage Alert - <Username_Dicoding>`
