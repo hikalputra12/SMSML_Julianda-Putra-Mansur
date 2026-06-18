@@ -1,0 +1,13 @@
+Detail Pengumpulan Eksperimen Siklus Hidup Machine Learning (SML)
+===============================================================
+Nama Siswa         : Julianda Putra Mansur
+Nama Repositori    : Eksperimen_SML_Julianda-Putra-Mansur
+Tautan DagsHub     : https://dagshub.com/hikalputra12/Eksperimen_SML_Julianda-Putra-Mansur
+Tautan Docker Hub  : https://hub.docker.com/r/haikal1012/loan-model
+===============================================================
+Deskripsi Singkat:
+Implementasi lengkap pipeline machine learning dari preprocessing data,
+model training dan tuning hyperparameter menggunakan MLflow dan remote tracking DagsHub,
+Workflow CI/CD (GitHub Actions) untuk otomatisasi build Docker image ke Docker Hub,
+serta monitoring real-time menggunakan Prometheus Exporter Proxy, Prometheus Server,
+dan dashboard Grafana dengan minimal 10 matriks dan 3 alerting rules.
