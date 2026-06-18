@@ -9,6 +9,13 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from skopt import BayesSearchCV
 
 def main():
+    import sys
+    import io
+    # Force stdout and stderr to UTF-8 to prevent UnicodeEncodeError in MLflow on Windows
+    if sys.platform.startswith("win"):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
     # Inisialisasi DagsHub tracking remote
     dagshub.init(repo_owner='hikalputra12', repo_name='Eksperimen_SML_Julianda-Putra-Mansur', mlflow=True)
 
@@ -70,10 +77,34 @@ def main():
         mlflow.log_metric("best_recall", rec)
         mlflow.log_metric("best_f1_score", f1)
         
-        # Logging model tersetel terbaik sebagai artefak resmi
-        mlflow.sklearn.log_model(best_model, "tuned_best_model")
+        # Logging model tersetel terbaik sebagai artefak resmi (dalam folder 'model' sesuai instruksi gambar)
+        mlflow.sklearn.log_model(best_model, "model")
         
-        # Membuat dan mengunggah Artefak Tambahan 1: Confusion Matrix Plot (Tuned)
+        # Membuat dan mengunggah estimator.html (representasi visual model)
+        from sklearn.utils import estimator_html_repr
+        estimator_path = "estimator.html"
+        with open(estimator_path, "w", encoding="utf-8") as f:
+            f.write(estimator_html_repr(best_model))
+        mlflow.log_artifact(estimator_path)
+        if os.path.exists(estimator_path):
+            os.remove(estimator_path)
+
+        # Membuat dan mengunggah metric_info.json (informasi metrik evaluasi)
+        import json
+        metrics_data = {
+            "best_accuracy": acc,
+            "best_precision": prec,
+            "best_recall": rec,
+            "best_f1_score": f1
+        }
+        metric_info_path = "metric_info.json"
+        with open(metric_info_path, "w", encoding="utf-8") as f:
+            json.dump(metrics_data, f, indent=4)
+        mlflow.log_artifact(metric_info_path)
+        if os.path.exists(metric_info_path):
+            os.remove(metric_info_path)
+
+        # Membuat dan mengunggah training_confusion_matrix.png
         import matplotlib.pyplot as plt
         import seaborn as sns
         from sklearn.metrics import confusion_matrix
@@ -81,18 +112,18 @@ def main():
         cm = confusion_matrix(y_test, y_pred)
         plt.figure(figsize=(6, 5))
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Rejected', 'Approved'], yticklabels=['Rejected', 'Approved'])
-        plt.title('Confusion Matrix - Tuned')
+        plt.title('Confusion Matrix')
         plt.ylabel('Actual Label')
         plt.xlabel('Predicted Label')
         plt.tight_layout()
-        cm_path = "confusion_matrix_tuned.png"
+        cm_path = "training_confusion_matrix.png"
         plt.savefig(cm_path)
         plt.close()
         mlflow.log_artifact(cm_path)
         if os.path.exists(cm_path):
             os.remove(cm_path)
             
-        # Membuat dan mengunggah Artefak Tambahan 2: Feature Importance Plot (Tuned)
+        # Membuat dan mengunggah Feature Importance Plot (Tuned) sebagai artefak tambahan
         import numpy as np
         importances = best_model.feature_importances_
         indices = np.argsort(importances)[::-1]
